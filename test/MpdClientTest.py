@@ -7,10 +7,6 @@ import lib.MpdClient
 class MpdClientTest(unittest.TestCase):
 
     def setup_socket_mocks(self, family=0, socket_type=0, proto=0, canonname=0, socket_address=0):
-        """
-        Returns a 5-tuple (family, type, proto, canonname, sockaddr)
-        """
-
         socket_api = create_autospec(socket)
         socket_api.getaddrinfo.return_value = [(family, socket_type, proto, canonname, socket_address)]
         socket_object = create_autospec(socket.socket, instance=True)
