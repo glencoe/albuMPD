@@ -36,9 +36,11 @@ class MpdClient:
     def _receive_response(self):
         end_of_transmission_reached = False
         data = ""
+        times = 0
         while not end_of_transmission_reached:
             data += self._socket.recv(1024).decode("utf-8")
-            if len(data) < 1024: #fix this, detect end of message correctly
+            times += 1
+            if data[-4:] == "\nOK\n":
                 end_of_transmission_reached = True
         return data
 
