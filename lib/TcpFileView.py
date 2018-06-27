@@ -1,17 +1,22 @@
 import sys
 
 
-class MpdClient:
+class TcpFileView:
 
     def __init__(self, socket_api):
-        self._socket_api = socket_api
+        self._port = 0
+        self._host = ""
         self._socket = None
+        self._socket_api = socket_api
+        self._write_file_handle = None
+        self._read_file_handle = None
 
     def connect(self, host, port):
         for remote_socket in self._get_remote_socket_descriptions(host, port):
             af, socktype, proto, _, sa = remote_socket
             try:
                 self._socket = self._create_matching_local_socket(af, socktype, proto)
+
             except OSError as msg:
                 self._socket = None
                 continue
@@ -19,37 +24,22 @@ class MpdClient:
                 self._socket.connect(sa)
             except OSError as msg:
                 self._socket.close()
+                self._read_file_handle.close()
+                self._write_file_handle.close()
                 self._socket = None
                 continue
             break
         if self._socket is None:
             print('could not open socket')
-            sys.exit(1)
-        elif self._received_welcome_message():
-            return "Ok"
+        else:
+            self._read_file_handle = self._socket.makefile(mode='r', encoding='utf-8')
+            self._write_file_handle = self._socket.makefile(mode='w', encoding='utf-8')
 
-    def _received_welcome_message(self):
-        welcome_message = "OK MPD 0.20.0"
-        received_message = self._socket.recv(len(welcome_message)).decode("utf-8")
-        return welcome_message == received_message
+    def reconnect(self):
+        self.connect(self._host, self._port)
 
-    def _receive_utf8_response(self):
-        end_of_transmission_reached = False
-        data = ""
-        times = 0
-        while not end_of_transmission_reached:
-            data += self._socket.recv(1024).decode("utf-8")
-            times += 1
-            if data[-3:] == "OK\n":
-                end_of_transmission_reached = True
-        return data
-
-    def command(self, command):
-        self._socket.send((command + "\n").encode())
-        return self._receive_utf8_response()
-
-    def list(self, what, group=None, filter=None):
-        command = "list " + what
+    def is_closed(self):
+        return self._socket is None
 
     def _get_remote_socket_descriptions(self, host, port):
         """
@@ -61,3 +51,10 @@ class MpdClient:
 
     def _create_matching_local_socket(self, af, socktype, proto):
         return self._socket_api.socket(af, socktype, proto)
+
+    def write(self, string):
+        self._write_file_handle.write(string)
+        self._write_file_handle.flush()
+
+    def read(self):
+        return self._read_file_handle.readline()

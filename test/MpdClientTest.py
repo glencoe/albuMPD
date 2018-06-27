@@ -16,8 +16,6 @@ class MpdClientTest(unittest.TestCase):
 
     def test_connect(self):
         socket_api, socket_object = self.setup_socket_mocks()
-        welcome_message = "OK MPD 0.20.0".encode()
-        socket_object.recv.side_effect = [welcome_message]
 
         client = lib.MpdClient.MpdClient(socket_api)
         ok = client.connect("hal", 6600)
@@ -32,12 +30,10 @@ class MpdClientTest(unittest.TestCase):
         self.assertEqual(
             [
                 call.connect(0),
-                call.recv(len(welcome_message))
             ],
             socket_object.method_calls
         )
 
-        self.assertEqual(ok, "Ok")
 
     def test_send_command(self):
         socket_api, socket_object = self.setup_socket_mocks()
