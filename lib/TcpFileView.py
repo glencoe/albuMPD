@@ -53,7 +53,7 @@ class TcpFileView:
 
     def _close_socket(self):
         if self._socket is not None:
-            self._socket.shutdown(self._socket.SHUT_RDWR)
+            self._socket.shutdown(self._socket_api.SHUT_RDWR)
             self._socket.close()
             self._socket = None
 
