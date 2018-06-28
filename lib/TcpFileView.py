@@ -29,7 +29,7 @@ class TcpFileView:
             try:
                 self._socket.connect(sa)
             except OSError as msg:
-                self._socket.shutdown()
+                self._socket.shutdown(self._socket_api.SHUT_RDWR)
                 self._socket.close()
                 self._socket = None
                 continue
@@ -39,6 +39,7 @@ class TcpFileView:
         else:
             self._read_file_handle = self._socket.makefile(mode='r', encoding='utf-8')
             self._write_file_handle = self._socket.makefile(mode='w', encoding='utf-8')
+            self._read_binary_handle = self._socket.makefile(mode='b')
 
     def _do_reconnect(self):
         self._do_connect(self._host, self._port)
@@ -50,6 +51,7 @@ class TcpFileView:
         self._close_socket()
         self._close_read_file_handle()
         self._close_write_file_handle()
+        self._close_read_binary_handle()
 
     def _close_socket(self):
         if self._socket is not None:
@@ -67,6 +69,11 @@ class TcpFileView:
             self._write_file_handle.close()
             self._write_file_handle = None
 
+    def _close_read_binary_handle(self):
+        if self._read_binary_handle is not None:
+            self._read_binary_handle.close()
+            self._read_binary_handle = None
+
     def _get_remote_socket_descriptions(self, host, port):
         """
         Returns a 5-tuple (family, type, proto, canonname, sockaddr)
@@ -79,16 +86,18 @@ class TcpFileView:
         return self._socket_api.socket(af, socket_type, proto)
 
     def write(self, string):
-        try:
-            self._write_file_handle.write(string)
-            self._write_file_handle.flush()
-        except OSError as msg:
-            self.close()
-            raise TcpFileViewError
+        self._try_call(self._write_file_handle.write, string)
+        self._try_call(self._write_file_handle.flush)
 
     def read(self):
+        return self._try_call(self._read_file_handle.readline)
+
+    def _try_call(self, call, *args):
         try:
-            result = self._read_file_handle.readline()
+            if args is None or len(args) == 0:
+                result = call()
+            else:
+                result = call(*args)
         except OSError as msg:
             self.close()
             raise TcpFileViewError
@@ -96,3 +105,6 @@ class TcpFileView:
             self.close()
             raise TcpFileViewError
         return result
+
+    def read_bytes(self):
+        return self._try_call(self._read_binary_handle.read, 1024)

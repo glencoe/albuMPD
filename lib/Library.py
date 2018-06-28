@@ -1,5 +1,6 @@
 import os.path
 
+
 class Library:
 
     def __init__(self, client):
@@ -14,11 +15,11 @@ class Library:
                         for album_dict in self._client.list(self._primary_list_tag,
                                                             group_tags=self._group_tags)]
 
-    def search(self, term):
+    def search(self, field, term):
         return [Album(album_dict, self._client)
                 for album_dict in self._client.list(self._primary_list_tag,
-                                                    group_tags=self._group_tags,
-                                                    filter=term)]
+                                                    filter=[field, term],
+                                                    group_tags=self._group_tags)]
 
     def get(self):
         if len(self._albums) == 0:
@@ -53,10 +54,9 @@ class Album:
     def songs(self):
         if len(self._songs) == 0:
             try:
-                song_dicts = self._client.find("musicbrainz_albumid {}".format(self.id()))
+                song_dicts = self._client.find("musicbrainz_albumid", self.id())
             except KeyError:
-                song_dicts = self._client.find('album "{}" albumartist "{}"'.format(self.title().replace("\"", ""),
-                                                                                    self.album_artist()))
+                song_dicts = self._client.find('album', self.title(), 'albumartist', self.album_artist())
             self._songs = [Song(song_dict, self._client) for song_dict in song_dicts]
         return self._songs
 

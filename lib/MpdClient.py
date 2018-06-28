@@ -18,19 +18,13 @@ class MpdClient:
             raise MpdClientError("Error: received invalid welcome message:\n  " + welcome_message)
 
     def list(self, what, group_tags=None, filter=None):
-        request = "list " + what
+        request_list = ["list", what]
         if filter is not None:
-            request += " " + filter
+            request_list += filter
         if group_tags is not None:
-            for tag in group_tags:
-                request += " group " + tag
-        return self.command(request)
-
-    def command(self, request):
-        print(request)
-        request = "{}\n".format(request)
-        self._file_view.write(request)
-        return self._read()
+            group_tags = [x for t in group_tags for x in ("group", t)]
+            request_list += group_tags
+        return self.request(*request_list)
 
     @staticmethod
     def _quote_special_chars(string):
@@ -40,16 +34,17 @@ class MpdClient:
             return string
 
     def request(self, command, *args):
+        self._send_request(command, *args)
+        return self._read()
+
+    def _send_request(self, command, *args):
         if args is not None and len(args) > 0:
             args = [self._quote_special_chars(str(x).replace('"', '\\\"')) for x in args]
-            print(args)
             arg_string = " ".join(args)
-            print(arg_string)
             request = '{} {}\n'.format(command, arg_string)
         else:
             request = '{}\n'.format(command)
         self._file_view.write(request)
-        return self._read()
 
     def stats(self):
         return self.request("stats")
@@ -58,15 +53,17 @@ class MpdClient:
         return self.request("status")
 
     def find(self, *what):
-        return self.request('find', what)
+        return self.request('find', *what)
 
     def _read(self):
         return self._parse_response(self._get_response_utf8())
 
     def album_art(self, uri):
-        request = "albumart {}\n".format(uri)
-        info_dict = self._read_number_of_lines(2)
-        print(info_dict)
+        self._send_request('albumart', uri, '0')
+        byte_string = self._file_view.read_bytes()
+        size = byte_string.partition('\n'.encode())[0].decode().partition(":")[2]
+        bytes = byte_string.partition('\n'.encode())[2].partition('\n'.encode())[0].decode().partition(":")[2]
+        return size.lstrip(), bytes.lstrip()
 
     def _get_response_utf8(self):
         response = ""
@@ -83,8 +80,10 @@ class MpdClient:
 
     def _read_number_of_lines(self, number):
         response = ""
-        for i in range(0, number):
+        i = 0
+        while i < number:
             response += self._file_view.read()
+            i += 1
         return self._parse_response(response)
 
     def shutdown(self):
