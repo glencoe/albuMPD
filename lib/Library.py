@@ -2,10 +2,10 @@ class Library:
 
     def __init__(self, client):
         self._client = client
-        self.albums = []
+        self._albums = []
 
-    def get(self):
-        self.albums = [Album(album_dict, self._client)
+    def refresh(self):
+        self._albums = [Album(album_dict, self._client)
                        for album_dict in self._client.list("albumartist",
                                                            group_tags=["album",
                                                                        "musicbrainz_albumid"])]
@@ -17,6 +17,15 @@ class Library:
                                                         "album",
                                                         "musicbrainz_albumid"],
                                                     filter=term)]
+
+    def get(self):
+        if len(self._albums) == 0:
+            self.refresh()
+        return self._albums
+
+    def albums(self):
+        return self.get()
+
 
 
 class Album:
