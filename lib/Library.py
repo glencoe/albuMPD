@@ -9,8 +9,8 @@ class Library:
 
     def refresh(self):
         self._albums = [Album(album_dict, self._client)
-                       for album_dict in self._client.list(self._primary_list_tag,
-                                                           group_tags=self._group_tags)]
+                        for album_dict in self._client.list(self._primary_list_tag,
+                                                            group_tags=self._group_tags)]
 
     def search(self, term):
         return [Album(album_dict, self._client)
