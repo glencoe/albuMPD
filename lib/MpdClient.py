@@ -27,22 +27,46 @@ class MpdClient:
         return self.command(request)
 
     def command(self, request):
+        print(request)
         request = "{}\n".format(request)
         self._file_view.write(request)
         return self._read()
 
+    @staticmethod
+    def _quote_special_chars(string):
+        if ' ' in string or '\\\"' in string:
+            return '"{}"'.format(string)
+        else:
+            return string
+
+    def request(self, command, *args):
+        if args is not None and len(args) > 0:
+            args = [self._quote_special_chars(str(x).replace('"', '\\\"')) for x in args]
+            print(args)
+            arg_string = " ".join(args)
+            print(arg_string)
+            request = '{} {}\n'.format(command, arg_string)
+        else:
+            request = '{}\n'.format(command)
+        self._file_view.write(request)
+        return self._read()
+
     def stats(self):
-        return self.command("stats")
+        return self.request("stats")
 
     def status(self):
-        return self.command("status")
+        return self.request("status")
 
-    def find(self, what):
-        request = "find " + what
-        return self.command(request)
+    def find(self, *what):
+        return self.request('find', what)
 
     def _read(self):
         return self._parse_response(self._get_response_utf8())
+
+    def album_art(self, uri):
+        request = "albumart {}\n".format(uri)
+        info_dict = self._read_number_of_lines(2)
+        print(info_dict)
 
     def _get_response_utf8(self):
         response = ""
@@ -56,6 +80,12 @@ class MpdClient:
             else:
                 response += line
         return response
+
+    def _read_number_of_lines(self, number):
+        response = ""
+        for i in range(0, number):
+            response += self._file_view.read()
+        return self._parse_response(response)
 
     def shutdown(self):
         self._file_view.close()
