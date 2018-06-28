@@ -3,19 +3,19 @@ class Library:
     def __init__(self, client):
         self._client = client
         self._albums = []
+        self._group_tags = ["album", "musicbrainz_albumid",
+                            "albumartistsort", "genre"]
+        self._primary_list_tag = "albumartist"
 
     def refresh(self):
         self._albums = [Album(album_dict, self._client)
-                       for album_dict in self._client.list("albumartist",
-                                                           group_tags=["album",
-                                                                       "musicbrainz_albumid"])]
+                       for album_dict in self._client.list(self._primary_list_tag,
+                                                           group_tags=self._group_tags)]
 
     def search(self, term):
         return [Album(album_dict, self._client)
-                for album_dict in self._client.list("albumartist",
-                                                    group_tags=[
-                                                        "album",
-                                                        "musicbrainz_albumid"],
+                for album_dict in self._client.list(self._primary_list_tag,
+                                                    group_tags=self._group_tags,
                                                     filter=term)]
 
     def get(self):
@@ -25,7 +25,6 @@ class Library:
 
     def albums(self):
         return self.get()
-
 
 
 class Album:
