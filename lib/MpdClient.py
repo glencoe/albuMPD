@@ -24,18 +24,19 @@ class MpdClient:
         if group_tags is not None:
             for tag in group_tags:
                 request += " group " + tag
-        request += "\n"
-        self._file_view.write(request)
-        return self._parse_response(self._get_response_utf8())
+        self.command(request)
+        return self._read()
 
     def command(self, request):
         request += "\n"
         self._file_view.write(request)
-        return self._parse_response(self._get_response_utf8())
+        return self._read()
 
     def stats(self):
-        request = "stats\n"
-        self._file_view.write(request)
+        self.command("stats")
+        return self._read()
+
+    def _read(self):
         return self._parse_response(self._get_response_utf8())
 
     def _get_response_utf8(self):
