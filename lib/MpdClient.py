@@ -28,13 +28,19 @@ class MpdClient:
         return self._read()
 
     def command(self, request):
-        request += "\n"
+        request = "{}\n".format(request)
         self._file_view.write(request)
         return self._read()
 
     def stats(self):
-        self.command("stats")
-        return self._read()
+        return self.command("stats")
+
+    def status(self):
+        return self.command("status")
+
+    def find(self, what):
+        request = "find " + what
+        return self.command(request)
 
     def _read(self):
         return self._parse_response(self._get_response_utf8())
