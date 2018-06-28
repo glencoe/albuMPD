@@ -1,4 +1,5 @@
-import sys
+class TcpFileViewError(BaseException):
+    pass
 
 
 class TcpFileView:
@@ -11,35 +12,60 @@ class TcpFileView:
         self._write_file_handle = None
         self._read_file_handle = None
 
-    def connect(self, host, port):
+    def connect(self, host=None, port=None):
+        if host is None or port is None:
+            self._do_reconnect()
+        else:
+            self._do_connect(host, port)
+
+    def _do_connect(self, host, port):
         for remote_socket in self._get_remote_socket_descriptions(host, port):
             af, socktype, proto, _, sa = remote_socket
             try:
                 self._socket = self._create_matching_local_socket(af, socktype, proto)
-
             except OSError as msg:
                 self._socket = None
                 continue
             try:
                 self._socket.connect(sa)
             except OSError as msg:
+                self._socket.shutdown()
                 self._socket.close()
-                self._read_file_handle.close()
-                self._write_file_handle.close()
                 self._socket = None
                 continue
             break
         if self._socket is None:
-            print('could not open socket')
+            raise TcpFileViewError
         else:
             self._read_file_handle = self._socket.makefile(mode='r', encoding='utf-8')
             self._write_file_handle = self._socket.makefile(mode='w', encoding='utf-8')
 
-    def reconnect(self):
-        self.connect(self._host, self._port)
+    def _do_reconnect(self):
+        self._do_connect(self._host, self._port)
 
     def is_closed(self):
         return self._socket is None
+
+    def close(self):
+        self._close_socket()
+        self._close_read_file_handle()
+        self._close_write_file_handle()
+
+    def _close_socket(self):
+        if self._socket is not None:
+            self._socket.shutdown(self._socket.SHUT_RDWR)
+            self._socket.close()
+            self._socket = None
+
+    def _close_read_file_handle(self):
+        if self._read_file_handle is not None:
+            self._read_file_handle.close()
+            self._read_file_handle = None
+
+    def _close_write_file_handle(self):
+        if self._write_file_handle is not None:
+            self._write_file_handle.close()
+            self._write_file_handle = None
 
     def _get_remote_socket_descriptions(self, host, port):
         """
@@ -49,12 +75,24 @@ class TcpFileView:
                                             self._socket_api.AF_UNSPEC,
                                             self._socket_api.SOCK_STREAM)
 
-    def _create_matching_local_socket(self, af, socktype, proto):
-        return self._socket_api.socket(af, socktype, proto)
+    def _create_matching_local_socket(self, af, socket_type, proto):
+        return self._socket_api.socket(af, socket_type, proto)
 
     def write(self, string):
-        self._write_file_handle.write(string)
-        self._write_file_handle.flush()
+        try:
+            self._write_file_handle.write(string)
+            self._write_file_handle.flush()
+        except OSError as msg:
+            self.close()
+            raise TcpFileViewError
 
     def read(self):
-        return self._read_file_handle.readline()
+        try:
+            result = self._read_file_handle.readline()
+        except OSError as msg:
+            self.close()
+            raise TcpFileViewError
+        if result is "":
+            self.close()
+            raise TcpFileViewError
+        return result

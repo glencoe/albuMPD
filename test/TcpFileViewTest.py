@@ -57,6 +57,20 @@ class TcpFileViewTest(unittest.TestCase):
         output_string = self.file_view.read()
         self.assertEqual(sentinel.output_string, output_string)
 
+    def test_connect_exception(self):
+        self._socket_object.connect.side_effect = OSError
+        self.assertRaises(lib.TcpFileView.TcpFileViewError, self.file_view.connect, "host", 123)
+
+    def test_write_exception(self):
+        self._write_file_handler.write.side_effect = OSError
+        self.assertRaises(lib.TcpFileView.TcpFileViewError, self.file_view.write, "blah")
+        self.assertTrue(self.file_view.is_closed())
+
+    def test_read_exception(self):
+        self._read_file_handler.readline.side_effect = OSError
+        self.assertRaises(lib.TcpFileView.TcpFileViewError, self.file_view.read)
+        self.assertTrue(self.file_view.is_closed())
+
     def makefile_mock(self, mode='r', encoding='utf-8'):
         if mode is 'r':
             return self._read_file_handler
