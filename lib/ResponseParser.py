@@ -20,10 +20,10 @@ def _key_is_valid(key):
 
 def _extract_key_value(line):
     try:
-        key = line.split(":", 1)[0].lstrip()
+        key = line.split(":", 1)[0].lstrip().lower()
         value = ":".join(line.split(":", 1)[1:]).lstrip()
     except ValueError as e:
-        key = line.split(":", 1)[0].lstrip()
+        key = line.split(":", 1)[0].lstrip().lower
         value = ""
     return key, value
 

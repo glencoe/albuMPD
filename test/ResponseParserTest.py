@@ -7,41 +7,41 @@ class ResponseParserTest(unittest.TestCase):
         response = "Artist: Some Random Artist"
         result = parse_response(response)
         self.assertEqual(
-            [{"Artist": "Some Random Artist"}],
+            [{"artist": "Some Random Artist"}],
             result
                          )
         response = "AlbumArtist: New Order"
         result = parse_response(response)
         self.assertEqual(
-            [{"AlbumArtist": "New Order"}],
+            [{"albumartist": "New Order"}],
             result
         )
 
     def test_parse_two_lines(self):
-        response = "Artist: MyArtist\n" \
-                   "Album: MyAlbum"
+        response = "artist: MyArtist\n" \
+                   "album: MyAlbum"
         result = parse_response(response)
         self.assertEqual(
-            [{"Artist": "MyArtist",
-              "Album": "MyAlbum"}],
+            [{"artist": "MyArtist",
+              "album": "MyAlbum"}],
             result
         )
 
     def test_parse_two_groups(self):
-        response = "Artist: Prince\n" \
-                   "Album: Dirty Mind\n" \
-                   "Artist: David Bowie\n" \
-                   "Album: Heroes"
+        response = "artist: Prince\n" \
+                   "album: Dirty Mind\n" \
+                   "artist: David Bowie\n" \
+                   "album: Heroes"
         result = parse_response(response)
         self.assertEqual(
             [
                 {
-                    "Artist": "Prince",
-                    "Album": "Dirty Mind",
+                    "artist": "Prince",
+                    "album": "Dirty Mind",
                 },
                 {
-                    "Artist": "David Bowie",
-                    "Album": "Heroes",
+                    "artist": "David Bowie",
+                    "album": "Heroes",
                 },
             ],
             result

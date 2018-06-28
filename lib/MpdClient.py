@@ -24,8 +24,7 @@ class MpdClient:
         if group_tags is not None:
             for tag in group_tags:
                 request += " group " + tag
-        self.command(request)
-        return self._read()
+        return self.command(request)
 
     def command(self, request):
         request = "{}\n".format(request)
