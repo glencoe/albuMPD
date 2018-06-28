@@ -28,6 +28,11 @@ class MpdClient:
         self._file_view.write(request)
         return self._parse_response(self._get_response_utf8())
 
+    def command(self, request):
+        request += "\n"
+        self._file_view.write(request)
+        return self._parse_response(self._get_response_utf8())
+
     def stats(self):
         request = "stats\n"
         self._file_view.write(request)
