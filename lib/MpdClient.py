@@ -58,12 +58,30 @@ class MpdClient:
     def _read(self):
         return self._parse_response(self._get_response_utf8())
 
-    def album_art(self, uri):
-        self._send_request('albumart', uri, '0')
-        byte_string = self._file_view.read_bytes()
-        size = byte_string.partition('\n'.encode())[0].decode().partition(":")[2]
-        bytes = byte_string.partition('\n'.encode())[2].partition('\n'.encode())[0].decode().partition(":")[2]
-        return size.lstrip(), bytes.lstrip()
+    def album_art(self, uri, offset=0):
+        self._send_request('albumart', uri, '{}'.format(offset))
+        byte_string = self._file_view.read_bytes(3)
+        if byte_string == b'ACK':
+            end_of_transmission_reached = False
+            while not end_of_transmission_reached:
+                current_byte = self._file_view.read_bytes(1)
+                if current_byte is b'\n':
+                    end_of_transmission_reached = True
+                else:
+                    byte_string += current_byte
+            raise MpdClientError(byte_string.decode())
+        byte_string = self._file_view.read_bytes(64)
+        size, _, rest = byte_string.partition('\n'.encode())
+        size = size.decode().split(":")[-1].lstrip()
+        size = int(size)
+        number_of_bytes, _, rest = rest.partition('\n'.encode())
+        number_of_bytes = number_of_bytes.decode().split(":")[-1].lstrip()
+        number_of_bytes = int(number_of_bytes)
+        rest += self._file_view.read_bytes(number_of_bytes-len(rest))
+        self._file_view.read_bytes(4)
+        if offset+number_of_bytes < size:
+            rest += self.album_art(uri, offset+number_of_bytes)
+        return rest
 
     def _get_response_utf8(self):
         response = ""

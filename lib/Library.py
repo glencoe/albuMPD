@@ -32,10 +32,11 @@ class Library:
 
 class Album:
 
-    def __init__(self, album_dict, client):
+    def __init__(self, album_dict, client, cover_dir=""):
         self._album_dict = album_dict
         self._client = client
         self._songs = []
+        self._cover_dir = cover_dir
 
     def album_artist(self):
         return self._album_dict['albumartist']
@@ -50,6 +51,9 @@ class Album:
 
     def title(self):
         return self._album_dict['album']
+
+    def has_id(self):
+        return 'musicbrainz_albumid' in self._album_dict
 
     def songs(self):
         if len(self._songs) == 0:
@@ -67,6 +71,19 @@ class Album:
         result = result.rstrip("; ") + ">"
         return result
 
+    def get_cover_path(self):
+        return os.path.join(self._cover_dir, self.id() + ".jpg")
+
+    def update_cover(self):
+        if self.has_id():
+            song_url = self.songs()[0].file()
+            data = self._client.album_art(song_url)
+            file = open(
+                self.get_cover_path(),
+                'w+b')
+            file.write(data)
+            file.close()
+
 
 class Song:
 
@@ -82,6 +99,9 @@ class Song:
 
     def file(self):
         return self.uri()
+
+    def album_id(self):
+        return self._song_dict['musicbrainz_albumid']
 
     def __repr__(self):
         return repr(self._song_dict)

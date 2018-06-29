@@ -106,5 +106,5 @@ class TcpFileView:
             raise TcpFileViewError
         return result
 
-    def read_bytes(self):
-        return self._try_call(self._read_binary_handle.read, 1024)
+    def read_bytes(self, number):
+        return self._try_call(self._read_binary_handle.read, number)
