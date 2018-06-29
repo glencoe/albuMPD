@@ -3,20 +3,21 @@ import os.path
 
 class Library:
 
-    def __init__(self, client):
+    def __init__(self, client, logger=None):
         self._client = client
         self._albums = []
         self._group_tags = ["album", "musicbrainz_albumid",
                             "albumartistsort", "genre"]
         self._primary_list_tag = "albumartist"
+        self._logger = logger
 
     def refresh(self):
-        self._albums = [Album(album_dict, self._client)
+        self._albums = [Album(album_dict, self._client, logger=self._logger)
                         for album_dict in self._client.list(self._primary_list_tag,
                                                             group_tags=self._group_tags)]
 
     def search(self, field, term):
-        return [Album(album_dict, self._client)
+        return [Album(album_dict, self._client, logger=self._logger)
                 for album_dict in self._client.list(self._primary_list_tag,
                                                     filter=[field, term],
                                                     group_tags=self._group_tags)]
@@ -29,14 +30,19 @@ class Library:
     def albums(self):
         return self.get()
 
+    def _log(self, string):
+        if self._logger is not None:
+            self._logger.write(string)
+
 
 class Album:
 
-    def __init__(self, album_dict, client, cover_dir=""):
+    def __init__(self, album_dict, client, cover_dir="", logger=None):
         self._album_dict = album_dict
         self._client = client
         self._songs = []
         self._cover_dir = cover_dir
+        self._logger = logger
 
     def album_artist(self):
         return self._album_dict['albumartist']
@@ -64,6 +70,19 @@ class Album:
             self._songs = [Song(song_dict, self._client) for song_dict in song_dicts]
         return self._songs
 
+    def update_cover(self):
+        self._log("downloading cover for {} - {} to {}\n".format(self.album_artist(),
+                                                               self.title(),
+                                                               self.get_cover_path()))
+        if self.has_id():
+            song_url = self.songs()[0].file()
+            data = self._client.album_art(song_url)
+            file = open(
+                self.get_cover_path(),
+                'w+b')
+            file.write(data)
+            file.close()
+
     def __repr__(self):
         result = "<ALBUM "
         for key in self._album_dict:
@@ -74,15 +93,9 @@ class Album:
     def get_cover_path(self):
         return os.path.join(self._cover_dir, self.id() + ".jpg")
 
-    def update_cover(self):
-        if self.has_id():
-            song_url = self.songs()[0].file()
-            data = self._client.album_art(song_url)
-            file = open(
-                self.get_cover_path(),
-                'w+b')
-            file.write(data)
-            file.close()
+    def _log(self, string):
+        if self._logger is not None:
+            self._logger.write(string)
 
 
 class Song:

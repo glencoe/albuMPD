@@ -7,9 +7,10 @@ class MpdClientError(BaseException):
 
 class MpdClient:
 
-    def __init__(self, file_view, parse_response=lib.ResponseParser.parse_response):
+    def __init__(self, file_view, parse_response=lib.ResponseParser.parse_response, logger=None):
         self._file_view = file_view
         self._parse_response = parse_response
+        self._logger = logger
 
     def connect(self, host, port):
         self._file_view.connect(host, port)
@@ -58,9 +59,11 @@ class MpdClient:
     def _read(self):
         return self._parse_response(self._get_response_utf8())
 
-    def album_art(self, uri, offset=0):
+    def _album_art_chunk(self, uri, offset=0):
         self._send_request('albumart', uri, '{}'.format(offset))
-        byte_string = self._file_view.read_bytes(3)
+        byte_string = b''
+        while byte_string.count(b'\n') < 2 and byte_string != b'ACK':
+            byte_string += self._file_view.read_bytes(1)
         if byte_string == b'ACK':
             end_of_transmission_reached = False
             while not end_of_transmission_reached:
@@ -70,18 +73,27 @@ class MpdClient:
                 else:
                     byte_string += current_byte
             raise MpdClientError(byte_string.decode())
-        byte_string = self._file_view.read_bytes(64)
         size, _, rest = byte_string.partition('\n'.encode())
         size = size.decode().split(":")[-1].lstrip()
         size = int(size)
         number_of_bytes, _, rest = rest.partition('\n'.encode())
         number_of_bytes = number_of_bytes.decode().split(":")[-1].lstrip()
         number_of_bytes = int(number_of_bytes)
-        rest += self._file_view.read_bytes(number_of_bytes-len(rest))
+        rest += self._file_view.read_bytes(number_of_bytes)
         self._file_view.read_bytes(4)
-        if offset+number_of_bytes < size:
-            rest += self.album_art(uri, offset+number_of_bytes)
-        return rest
+        next_offset = number_of_bytes + offset
+        complete = offset + number_of_bytes >= size
+        self._log("{}/{}/{}/{}\n".format(offset, size, next_offset, complete))
+        return rest, next_offset, complete
+
+    def album_art(self, uri):
+        complete = False
+        data = b''
+        offset = 0
+        while not complete:
+            chunk, offset, complete = self._album_art_chunk(uri, offset)
+            data += chunk
+        return data
 
     def _get_response_utf8(self):
         response = ""
@@ -106,3 +118,7 @@ class MpdClient:
 
     def shutdown(self):
         self._file_view.close()
+
+    def _log(self, string):
+        if self._logger is not None:
+            self._logger.write(string)
