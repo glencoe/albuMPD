@@ -10,8 +10,9 @@ class Library:
                             "albumartistsort", "genre"]
         self._primary_list_tag = "albumartist"
         self._logger = logger
+        self._artists = []
 
-    def refresh(self):
+    def get_albums(self):
         self._albums = [Album(album_dict, self._client, logger=self._logger)
                         for album_dict in self._client.list(self._primary_list_tag,
                                                             group_tags=self._group_tags)]
@@ -22,17 +23,70 @@ class Library:
                                                     filter=[field, term],
                                                     group_tags=self._group_tags)]
 
-    def get(self):
-        if len(self._albums) == 0:
-            self.refresh()
-        return self._albums
+    def get_artists(self):
+        """
+        Here we get all artists. However the call to client.list
+        will return some of them more than once e.g.
+        1. albumartist: AC/DC
+        2. albumartist: AC/DC
+           albumartistsort: AC/DC
+        This is due to some files not having the correct albumartistsort tag.
+        To merge all of these occurences with the cases where a correct albumartistsort
+        tag is present, we fill a dictionary with the albumartist tags as keys and
+        Artist objects as values. An entry is updated as soon as a better data set
+        for an artist is found. Assuming that we have a better data set, if albumartist
+        and albumartistsort tag are different.
+        """
+        artists = {}
+        for artist_dict in self._client.list(self._primary_list_tag,
+                                             group_tags=['albumartistsort']):
+            artist = Artist(artist_dict, self._client)
+            if artist.name() not in artists or artist.name() != artist.sort_name():
+                artists[artist.name()] = artist
+        artists = [artists[key] for key in artists]
+        artists.sort()
+        self._artists = artists
+        return self._artists
+
+    def artists(self):
+        return self._artists
 
     def albums(self):
-        return self.get()
+        return self._albums
 
-    def _log(self, string):
+    def _log(self, ob):
         if self._logger is not None:
-            self._logger.write(string)
+            self._logger.write(repr(ob))
+
+
+class Artist:
+
+    def __init__(self, artist_dict, client):
+        self._client = client
+        self._artist_dict = artist_dict
+        self._group_tags = ["album", "musicbrainz_albumid",
+                            "albumartistsort", "genre"]
+
+    def name(self):
+        return self._artist_dict['albumartist']
+
+    def get_albums(self):
+        self._client.list('album',
+                          group_tags=self._group_tags,
+                          filter=['albumartist', self._name])
+
+    def sort_name(self):
+        if 'albumartistsort' not in self._artist_dict \
+                or self._artist_dict['albumartistsort'] == '':
+            return self._artist_dict['albumartist']
+        else:
+            return self._artist_dict['albumartistsort']
+
+    def __repr__(self):
+        return repr(self._artist_dict)
+
+    def __lt__(self, other):
+        return self.sort_name().lower() < other.sort_name().lower()
 
 
 class Album:
@@ -96,6 +150,9 @@ class Album:
     def _log(self, string):
         if self._logger is not None:
             self._logger.write(string)
+
+    def __lt__(self, other):
+        return self.title().lower() < other.title().lower()
 
 
 class Song:
