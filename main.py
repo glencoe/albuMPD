@@ -24,7 +24,7 @@ class Handler:
                 self._last_chosen_artist = value
                 for album in lib.search('albumartist', value):
                     print(album)
-
+                    print(album.hash())
 
 
 tcp_file_view = lib.TcpFileView.TcpFileView(socket)

@@ -1,4 +1,5 @@
 import os.path
+import hashlib
 
 
 class Library:
@@ -61,11 +62,13 @@ class Library:
 
 class Artist:
 
-    def __init__(self, artist_dict, client):
+    def __init__(self, artist_dict, client, hash_obj=hashlib.md5()):
         self._client = client
         self._artist_dict = artist_dict
         self._group_tags = ["album", "musicbrainz_albumid",
                             "albumartistsort", "genre"]
+        hash_obj.update(self.name().encode())
+        self._hash = hash_obj.digest()
 
     def name(self):
         return self._artist_dict['albumartist']
@@ -74,6 +77,9 @@ class Artist:
         self._client.list('album',
                           group_tags=self._group_tags,
                           filter=['albumartist', self._name])
+
+    def hash(self):
+        return self._hash
 
     def sort_name(self):
         if 'albumartistsort' not in self._artist_dict \
@@ -91,12 +97,14 @@ class Artist:
 
 class Album:
 
-    def __init__(self, album_dict, client, cover_dir="", logger=None):
+    def __init__(self, album_dict, client, cover_dir="", logger=None, calc_hash=hashlib.md5()):
         self._album_dict = album_dict
         self._client = client
         self._songs = []
         self._cover_dir = cover_dir
         self._logger = logger
+        calc_hash.update(self.album_artist().encode() + b"////" + self.title().encode())
+        self._hash = calc_hash.digest()
 
     def album_artist(self):
         return self._album_dict['albumartist']
@@ -114,6 +122,9 @@ class Album:
 
     def has_id(self):
         return 'musicbrainz_albumid' in self._album_dict
+
+    def hash(self):
+        return self._hash
 
     def songs(self):
         if len(self._songs) == 0:
@@ -157,15 +168,20 @@ class Album:
 
 class Song:
 
-    def __init__(self, song_dict, client):
+    def __init__(self, song_dict, client, hash_obj=hashlib.md5()):
         self._song_dict = song_dict
         self._client = client
+        hash_obj.update(self.uri())
+        self._hash = hash_obj.digest()
 
     def time(self):
         return self._song_dict['time']
 
     def uri(self):
         return self._song_dict['file']
+
+    def hash(self):
+        return self._hash
 
     def file(self):
         return self.uri()
