@@ -19,6 +19,7 @@ class MpdClient:
             raise MpdClientError("Error: received invalid welcome message:\n  " + welcome_message)
 
     def list(self, what, group_tags=None, filter=None):
+        self._log("list {}".format(group_tags))
         request_list = ["list", what]
         if filter is not None:
             request_list += filter
@@ -45,6 +46,7 @@ class MpdClient:
             request = '{} {}\n'.format(command, arg_string)
         else:
             request = '{}\n'.format(command)
+        self._log("Mpd Request: {}\n".format(request));
         self._file_view.write(request)
 
     def stats(self):

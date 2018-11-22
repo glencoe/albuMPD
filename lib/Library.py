@@ -39,8 +39,10 @@ class Library:
         and albumartistsort tag are different.
         """
         artists = {}
-        for artist_dict in self._client.list(self._primary_list_tag,
-                                             group_tags=['albumartistsort']):
+        for artist_dict in self._client.list(
+                self._primary_list_tag,
+                group_tags=['albumartistsort']
+                ):
             artist = Artist(artist_dict, self._client)
             if artist.name() not in artists or artist.name() != artist.sort_name():
                 artists[artist.name()] = artist
@@ -171,7 +173,7 @@ class Song:
     def __init__(self, song_dict, client, hash_obj=hashlib.md5()):
         self._song_dict = song_dict
         self._client = client
-        hash_obj.update(self.uri())
+        hash_obj.update(self.uri().encode())
         self._hash = hash_obj.digest()
 
     def time(self):

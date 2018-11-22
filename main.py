@@ -30,6 +30,7 @@ class Handler:
 tcp_file_view = lib.TcpFileView.TcpFileView(socket)
 client = lib.MpdClient.MpdClient(tcp_file_view)
 lib = lib.Library.Library(client, logger=sys.stdout)
+sys.stdout.write("blahhh\n")
 client.connect("localhost", 6600)
 lib.get_artists()
 builder = Gtk.Builder()
