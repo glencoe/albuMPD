@@ -76,9 +76,10 @@ class Artist:
         return self._artist_dict['albumartist']
 
     def get_albums(self):
-        self._client.list('album',
-                          group_tags=self._group_tags,
-                          filter=['albumartist', self._name])
+        return [Album(album_dict, self._client)
+                for album_dict in self._client.list('albumartist', 
+                    filter=['albumartist', self.name()],
+                    group_tags=self._group_tags)]
 
     def hash(self):
         return self._hash
@@ -157,8 +158,15 @@ class Album:
         result = result.rstrip("; ") + ">"
         return result
 
+    def fetch_cover(self):
+        if not self.cover_present():
+            self.update_cover()
+
     def get_cover_path(self):
         return os.path.join(self._cover_dir, self.id() + ".jpg")
+
+    def cover_present(self):
+        return os.path.isfile(self.get_cover_path())
 
     def _log(self, string):
         if self._logger is not None:

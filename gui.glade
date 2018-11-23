@@ -2,6 +2,14 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
+  <object class="GtkListStore" id="album_store">
+    <columns>
+      <!-- column-name album_name -->
+      <column type="gchararray"/>
+      <!-- column-name album_cover -->
+      <column type="GdkPixbuf"/>
+    </columns>
+  </object>
   <object class="GtkListStore" id="artist_store">
     <columns>
       <!-- column-name artist_name -->
@@ -36,6 +44,7 @@
                     <child>
                       <object class="GtkTreeView" id="artist_list_view">
                         <property name="name">artist list view</property>
+                        <property name="width_request">120</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="model">artist_store</property>
@@ -53,18 +62,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkTreeView" id="album_view_selector">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <child internal-child="selection">
-                          <object class="GtkTreeSelection"/>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
+                      <placeholder/>
                     </child>
                   </object>
                 </child>
@@ -77,37 +75,19 @@
           </packing>
         </child>
         <child>
-          <object class="GtkGrid" id="cover_grid">
+          <object class="GtkScrolledWindow">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="row_homogeneous">True</property>
-            <property name="column_homogeneous">True</property>
+            <property name="can_focus">True</property>
+            <property name="hscrollbar_policy">never</property>
+            <property name="shadow_type">in</property>
             <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
+              <object class="GtkIconView" id="album_view">
+                <property name="name">album_view</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="margin">6</property>
+                <property name="model">album_store</property>
+              </object>
             </child>
           </object>
           <packing>
